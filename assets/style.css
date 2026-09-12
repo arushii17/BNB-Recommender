@@ -1,0 +1,191 @@
+.stApp {
+    background: #f7f8fa;
+}
+
+.block-container {
+    max-width: 1250px;
+    padding-top: 1.5rem;
+    padding-bottom: 4rem;
+}
+
+.hero {
+    min-height: 320px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding: 55px;
+    margin-bottom: 35px;
+
+    border-radius: 24px;
+
+    background-size: cover;
+    background-position: center;
+
+    box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.12);
+}
+
+.hero-title {
+    color: white;
+
+    font-size: 52px;
+    font-weight: 800;
+
+    margin-bottom: 8px;
+}
+
+.hero-subtitle {
+    color: #eeeeee;
+
+    font-size: 19px;
+    line-height: 1.6;
+
+    max-width: 650px;
+}
+
+.recommendation-card {
+    background: white;
+
+    border: 1.5px solid #e5e7eb;
+    border-radius: 18px;
+
+    padding: 24px;
+    min-height: 410px;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 6px 22px rgba(0, 0, 0, 0.06);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-7px);
+
+    border-color: #d7ab21;
+
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.13);
+}
+
+
+/* =========================
+   BADGES
+========================= */
+
+.rank-badge {
+    display: inline-block;
+
+    padding: 6px 11px;
+    margin-bottom: 15px;
+
+    border-radius: 30px;
+
+    background: #f0f2f5;
+
+    color: #333;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.best-badge {
+    background: #fff1ad;
+    color: #705500;
+}
+
+
+/* =========================
+   LISTING CONTENT
+========================= */
+
+.listing-title {
+    color: #171717;
+
+    font-size: 21px;
+    font-weight: 750;
+
+    line-height: 1.3;
+
+    min-height: 55px;
+
+    margin-bottom: 8px;
+}
+
+.listing-location {
+    color: #737373;
+
+    font-size: 14px;
+
+    margin-bottom: 20px;
+}
+
+.listing-price {
+    color: #111;
+
+    font-size: 30px;
+    font-weight: 800;
+
+    margin-bottom: 20px;
+}
+
+.listing-price span {
+    color: #777;
+
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.listing-detail {
+    color: #404040;
+
+    font-size: 15px;
+
+    line-height: 2;
+}
+
+.match-score {
+    margin-top: 20px;
+
+    padding: 10px;
+
+    background: #f4f5f7;
+
+    border-radius: 10px;
+
+    text-align: center;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+div.stButton > button {
+    border-radius: 12px;
+
+    height: 48px;
+
+    font-size: 16px;
+    font-weight: 650;
+}
+
+div[data-baseweb="select"] > div {
+    border-radius: 10px;
+}
+
+div[data-testid="stNumberInput"] input {
+    border-radius: 10px;
+}
+
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
