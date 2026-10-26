@@ -21,7 +21,7 @@ from ui_components import (
 
 st.set_page_config(
     page_title="FindMyFlat",
-    page_icon="🏠",
+    page_icon="⌂",
     layout="wide"
 )
 
@@ -38,29 +38,14 @@ def main():
         "style.css"
     )
 
-    image_path = os.path.join(
-        base_dir,
-        "assets",
-        "artem-labunsky-RLqc0V-hssY-unsplash.jpg"
-    )
-
     load_css(css_path)
-    show_hero(image_path)
 
-    # --------------------------------------------------------
-    # SEARCH FORM
-    # --------------------------------------------------------
+    show_hero()
 
     filters = render_search_form()
 
-    # --------------------------------------------------------
-    # NEW SEARCH
-    # --------------------------------------------------------
-
     if filters is not None:
 
-        # Remove old comparison when the user starts
-        # a completely new search.
         st.session_state.pop(
             "comparison_listing",
             None
@@ -93,18 +78,12 @@ def main():
 
             return
 
-        # ----------------------------------------------------
-        # API RETURNED NO RESULTS
-        # ----------------------------------------------------
-
         if df.empty:
 
             st.warning(
                 "No stays were returned for this search."
             )
 
-            # Clear previous results so old properties
-            # are not shown after an unsuccessful search.
             st.session_state.pop(
                 "top_3",
                 None
@@ -122,46 +101,20 @@ def main():
 
             return
 
-        # ----------------------------------------------------
-        # FILTER + RANK
-        # ----------------------------------------------------
-
         top_3, all_results = (
             get_live_recommendations(
                 df=df,
                 min_price=filters["min_price"],
                 max_price=filters["max_price"],
-                property_type=filters[
-                    "property_type"
-                ],
-                bedrooms=filters[
-                    "bedrooms"
-                ],
-                min_rating=filters[
-                    "min_rating"
-                ]
+                property_type=filters["property_type"],
+                bedrooms=filters["bedrooms"],
+                min_rating=filters["min_rating"]
             )
         )
 
-        # ----------------------------------------------------
-        # SAVE CURRENT SEARCH
-        # ----------------------------------------------------
-
-        st.session_state[
-            "search_filters"
-        ] = filters
-
-        st.session_state[
-            "top_3"
-        ] = top_3
-
-        st.session_state[
-            "all_results"
-        ] = all_results
-
-    # --------------------------------------------------------
-    # DISPLAY SAVED RESULTS
-    # --------------------------------------------------------
+        st.session_state["search_filters"] = filters
+        st.session_state["top_3"] = top_3
+        st.session_state["all_results"] = all_results
 
     if (
         "top_3" in st.session_state
@@ -170,15 +123,9 @@ def main():
     ):
 
         render_results(
-            st.session_state[
-                "top_3"
-            ],
-            st.session_state[
-                "all_results"
-            ],
-            st.session_state[
-                "search_filters"
-            ]
+            st.session_state["top_3"],
+            st.session_state["all_results"],
+            st.session_state["search_filters"]
         )
 
 

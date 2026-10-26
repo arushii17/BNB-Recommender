@@ -1,12 +1,30 @@
-import streamlit as st
-import pandas as pd
-import base64
+import os
 import html
+
+import pandas as pd
+import streamlit as st
 
 from live_data_service import (
     compare_prices,
-    normalize_price_comparison
+    normalize_price_comparison,
 )
+
+
+# ============================================================
+# HTML RENDERING
+# ============================================================
+
+def render_html(content):
+    """
+    Render custom HTML safely in Streamlit.
+    """
+    if hasattr(st, "html"):
+        st.html(content)
+    else:
+        st.markdown(
+            content,
+            unsafe_allow_html=True
+        )
 
 
 # ============================================================
@@ -14,7 +32,6 @@ from live_data_service import (
 # ============================================================
 
 def load_css(css_path):
-
     with open(
         css_path,
         "r",
@@ -22,9 +39,8 @@ def load_css(css_path):
     ) as f:
         css = f.read()
 
-    st.markdown(
-        f"<style>{css}</style>",
-        unsafe_allow_html=True
+    render_html(
+        f"<style>{css}</style>"
     )
 
 
@@ -32,42 +48,83 @@ def load_css(css_path):
 # HERO
 # ============================================================
 
-def get_image_base64(image_path):
+def show_hero():
+    """
+    Clean FindMyFlat hero.
+    No external image.
+    No sunrise illustration.
+    """
 
-    with open(image_path, "rb") as image_file:
+    render_html(
+        """
+        <section class="fmf-hero">
 
-        return base64.b64encode(
-            image_file.read()
-        ).decode()
+            <nav class="fmf-nav">
+
+                <div class="fmf-brand">
+
+                    <div class="fmf-brand-mark">
+                        ⌂
+                    </div>
+
+                    <div>
+                        <div class="fmf-brand-name">
+                            FindMyFlat
+                        </div>
+
+                        <div class="fmf-brand-caption">
+                            smarter stay search
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="fmf-nav-right">
+                    Search&nbsp;&nbsp; · &nbsp;&nbsp;Compare&nbsp;&nbsp; · &nbsp;&nbsp;Choose
+                </div>
+
+            </nav>
 
 
-def show_hero(image_path):
+            <div class="fmf-hero-content">
 
-    encoded = get_image_base64(image_path)
+                <div class="fmf-hero-kicker">
+                    SMART STAY SEARCH
+                </div>
 
-    hero_html = (
-        f'<div class="hero" '
-        f'style="background-image: '
-        f'linear-gradient('
-        f'90deg, rgba(0,0,0,0.78), rgba(0,0,0,0.25)'
-        f'), '
-        f'url(\'data:image/jpg;base64,{encoded}\');">'
+                <h1>
+                    Find the right stay.<br>
+                    <span>Compare where it's cheapest.</span>
+                </h1>
 
-        f'<div class="hero-title">'
-        f'FindMyFlat'
-        f'</div>'
+                <p>
+                    Search accommodation across multiple platforms,
+                    compare prices, and book wherever you prefer.
+                </p>
 
-        f'<div class="hero-subtitle">'
-        f'Find the right stay, compare options across '
-        f'platforms, and book wherever you prefer.'
-        f'</div>'
+                <div class="fmf-hero-points">
 
-        f'</div>'
-    )
+                    <div>
+                        <span>01</span>
+                        Multiple platforms
+                    </div>
 
-    st.markdown(
-        hero_html,
-        unsafe_allow_html=True
+                    <div>
+                        <span>02</span>
+                        One comparison
+                    </div>
+
+                    <div>
+                        <span>03</span>
+                        Your choice
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+        """
     )
 
 
@@ -76,27 +133,25 @@ def show_hero(image_path):
 # ============================================================
 
 def format_price(value, currency):
-
     if value is None or pd.isna(value):
         return "Price unavailable"
 
-    currency_symbols = {
+    symbols = {
         "USD": "$",
         "EUR": "€",
         "GBP": "£",
-        "INR": "₹"
+        "INR": "₹",
     }
 
-    symbol = currency_symbols.get(
+    symbol = symbols.get(
         currency,
         f"{currency} "
     )
 
-    return f"{symbol}{value:,.0f}"
+    return f"{symbol}{float(value):,.0f}"
 
 
 def platform_name(platform):
-
     names = {
         "airbnb": "Airbnb",
         "booking": "Booking.com",
@@ -104,7 +159,7 @@ def platform_name(platform):
         "vrbo": "Vrbo",
         "google": "Google Hotels",
         "google_hotels": "Google Hotels",
-        "expedia": "Expedia"
+        "expedia": "Expedia",
     }
 
     platform = str(platform).lower()
@@ -113,6 +168,371 @@ def platform_name(platform):
         platform,
         platform.title()
     )
+
+
+def safe_text(value, fallback="—"):
+    if value is None:
+        return fallback
+
+    try:
+        if pd.isna(value):
+            return fallback
+    except Exception:
+        pass
+
+    text = str(value).strip()
+
+    return text if text else fallback
+
+
+def safe_number(value, fallback=0):
+    if value is None:
+        return fallback
+
+    try:
+        if pd.isna(value):
+            return fallback
+    except Exception:
+        pass
+
+    try:
+        return float(value)
+    except Exception:
+        return fallback
+
+
+def get_location(listing):
+    parts = []
+
+    for key in [
+        "city",
+        "region",
+        "country"
+    ]:
+        value = listing.get(key)
+
+        if value is not None:
+            try:
+                if pd.isna(value):
+                    continue
+            except Exception:
+                pass
+
+            value = str(value).strip()
+
+            if value:
+                parts.append(value)
+
+    if parts:
+        return ", ".join(parts)
+
+    return "Location unavailable"
+
+
+def get_property_image(listing):
+    image = listing.get("image")
+
+    if image is None:
+        return None
+
+    try:
+        if pd.isna(image):
+            return None
+    except Exception:
+        pass
+
+    image = str(image).strip()
+
+    return image if image else None
+
+
+# ============================================================
+# RECOMMENDATION CARD
+# ============================================================
+
+def recommendation_card_html(
+    listing,
+    position
+):
+
+    name = safe_text(
+        listing.get("name"),
+        "Unnamed property"
+    )
+
+    location = get_location(
+        listing
+    )
+
+    property_type = safe_text(
+        listing.get("property_type"),
+        "Property"
+    ).title()
+
+    platform = platform_name(
+        listing.get("platform", "")
+    )
+
+    currency = safe_text(
+        listing.get("currency"),
+        ""
+    )
+
+    nightly_price = format_price(
+        listing.get("nightly_price"),
+        currency
+    )
+
+    total_price = format_price(
+        listing.get("total_price"),
+        currency
+    )
+
+    rating = listing.get("rating")
+
+    if rating is None or pd.isna(rating):
+        rating_text = "New"
+    else:
+        rating_text = f"{float(rating):.1f}"
+
+    reviews = int(
+        safe_number(
+            listing.get("review_count"),
+            0
+        )
+    )
+
+    bedrooms = listing.get("bedrooms")
+
+    if bedrooms is None:
+        bedrooms_text = "—"
+    else:
+        try:
+            bedrooms_text = str(
+                int(bedrooms)
+            )
+        except Exception:
+            bedrooms_text = "—"
+
+    image = get_property_image(
+        listing
+    )
+
+    safe_name = html.escape(
+        name,
+        quote=True
+    )
+
+    safe_location = html.escape(
+        location,
+        quote=True
+    )
+
+    safe_property_type = html.escape(
+        property_type,
+        quote=True
+    )
+
+    safe_platform = html.escape(
+        platform,
+        quote=True
+    )
+
+    if image:
+        image_html = (
+            f'<img src="{html.escape(image, quote=True)}" '
+            f'alt="{safe_name}">'
+        )
+    else:
+        image_html = """
+            <div class="property-image-placeholder">
+                <span>⌂</span>
+            </div>
+        """
+
+    if position == 1:
+        badge_html = """
+            <div class="best-match-badge">
+                ★ Best Match
+            </div>
+        """
+    else:
+        badge_html = ""
+
+    return f"""
+        <article class="property-card">
+
+            <div class="property-image">
+                {image_html}
+
+                {badge_html}
+
+            </div>
+
+            <div class="property-body">
+
+                <div class="property-topline">
+
+                    <span class="property-platform">
+                        {safe_platform}
+                    </span>
+
+                    <span class="property-rating">
+                        ★ {rating_text}
+                    </span>
+
+                </div>
+
+                <h3 class="property-name">
+                    {safe_name}
+                </h3>
+
+                <div class="property-location">
+                    {safe_location}
+                </div>
+
+                <div class="property-meta">
+
+                    <span>
+                        {safe_property_type}
+                    </span>
+
+                    <span>
+                        {bedrooms_text} bedroom
+                        {"s" if bedrooms_text != "1" else ""}
+                    </span>
+
+                    <span>
+                        {reviews:,} reviews
+                    </span>
+
+                </div>
+
+                <div class="property-footer">
+
+                    <div>
+
+                        <div class="property-price">
+                            {nightly_price}
+                            <span>/ night</span>
+                        </div>
+
+                        <div class="property-total">
+                            {total_price} total stay
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </article>
+    """
+
+
+# ============================================================
+# TOP RECOMMENDATIONS
+# ============================================================
+
+def render_top_recommendations(
+    top_3,
+    search_filters
+):
+
+    if top_3.empty:
+        return
+
+    location = safe_text(
+        search_filters.get("location"),
+        "your destination"
+    )
+
+    render_html(
+        f"""
+        <section class="results-section">
+
+            <div class="section-intro">
+
+                <div>
+                    <div class="section-kicker">
+                        RECOMMENDED FOR YOU
+                    </div>
+
+                    <h2>
+                        Top stays in {html.escape(location)}
+                    </h2>
+
+                    <p>
+                        Selected from the available options
+                        based on your preferences.
+                    </p>
+                </div>
+
+                <div class="result-count">
+                    {len(top_3)} picks
+                </div>
+
+            </div>
+
+        </section>
+        """
+    )
+
+    columns = st.columns(
+        len(top_3),
+        gap="large"
+    )
+
+    for index, (_, listing) in enumerate(
+        top_3.iterrows()
+    ):
+
+        with columns[index]:
+
+            render_html(
+                recommendation_card_html(
+                    listing,
+                    index + 1
+                )
+            )
+
+            booking_url = listing.get(
+                "booking_url"
+            )
+
+            platform = platform_name(
+                listing.get(
+                    "platform",
+                    ""
+                )
+            )
+
+            if (
+                booking_url
+                and pd.notna(booking_url)
+            ):
+
+                st.link_button(
+                    f"View on {platform} ↗",
+                    booking_url,
+                    use_container_width=True
+                )
+
+            compare_clicked = st.button(
+                "Compare prices",
+                key=(
+                    f"compare_"
+                    f"{listing.get('id', index)}"
+                ),
+                use_container_width=True
+            )
+
+            if compare_clicked:
+
+                st.session_state[
+                    "comparison_listing"
+                ] = listing.to_dict()
 
 
 # ============================================================
@@ -124,31 +544,19 @@ def render_price_comparison(
     search_filters
 ):
 
-    property_name = listing.get("name")
-
-    city = listing.get("city")
-    region = listing.get("region")
-    country = listing.get("country")
-
-    location_parts = [
-        str(value)
-        for value in [
-            city,
-            region,
-            country
-        ]
-        if pd.notna(value) and value
-    ]
-
-    property_location = ", ".join(
-        location_parts
+    property_name = safe_text(
+        listing.get("name"),
+        "Property"
     )
 
-    if not property_location:
+    property_location = get_location(
+        listing
+    )
 
-        property_location = (
-            search_filters["location"]
-        )
+    if property_location == "Location unavailable":
+        property_location = search_filters[
+            "location"
+        ]
 
     try:
 
@@ -176,10 +584,8 @@ def render_price_comparison(
                 ]
             )
 
-            comparison = (
-                normalize_price_comparison(
-                    response
-                )
+            comparison = normalize_price_comparison(
+                response
             )
 
     except Exception as e:
@@ -204,21 +610,26 @@ def render_price_comparison(
 
         return
 
-    st.markdown("#### 💰 Price comparison")
+    render_html(
+        """
+        <div class="comparison-section">
 
-    if len(offers) == 1:
+            <div class="section-kicker">
+                PRICE COMPARISON
+            </div>
 
-        st.caption(
-            "Only one provider offer was "
-            "available for this property."
-        )
+            <h2>
+                Where is it cheapest?
+            </h2>
 
-    else:
+            <p class="comparison-description">
+                Compare the total stay cost across
+                available booking platforms.
+            </p>
 
-        st.caption(
-            f"{len(offers)} provider offers found. "
-            "Prices are compared using total stay cost."
-        )
+        </div>
+        """
+    )
 
     for _, offer in offers.iterrows():
 
@@ -229,31 +640,62 @@ def render_price_comparison(
             )
         )
 
-        total = format_price(
-            offer.get("total_price"),
-            offer.get(
-                "currency",
-                search_filters["currency"]
-            )
+        currency = offer.get(
+            "currency",
+            search_filters["currency"]
         )
 
-        is_cheapest = offer.get(
-            "is_cheapest",
-            False
+        total = format_price(
+            offer.get("total_price"),
+            currency
+        )
+
+        nightly = format_price(
+            offer.get("nightly_price"),
+            currency
+        )
+
+        is_cheapest = bool(
+            offer.get(
+                "is_cheapest",
+                False
+            )
         )
 
         if is_cheapest:
-
-            st.success(
-                f"🏆 Best price — "
-                f"{platform}: {total}"
-            )
-
+            status = """
+                <span class="offer-best">
+                    BEST PRICE
+                </span>
+            """
         else:
+            status = ""
 
-            st.write(
-                f"**{platform}** — {total}"
-            )
+        render_html(
+            f"""
+            <div class="price-offer">
+
+                <div class="offer-platform">
+                    <div class="offer-platform-name">
+                        {html.escape(platform)}
+                    </div>
+
+                    <div class="offer-nightly">
+                        {nightly} / night
+                    </div>
+                </div>
+
+                <div class="offer-price">
+                    <strong>
+                        {total}
+                    </strong>
+
+                    {status}
+                </div>
+
+            </div>
+            """
+        )
 
         booking_url = offer.get(
             "booking_url"
@@ -265,331 +707,10 @@ def render_price_comparison(
         ):
 
             st.link_button(
-                f"View deal on {platform} ↗",
+                f"Book on {platform} ↗",
                 booking_url,
                 use_container_width=True
             )
-
-
-# ============================================================
-# RECOMMENDATION CARD
-# ============================================================
-
-def recommendation_card_html(
-    listing,
-    position
-):
-
-    if position == 1:
-
-        badge = "🏆 Best Match"
-        badge_class = (
-            "rank-badge best-badge"
-        )
-
-    elif position == 2:
-
-        badge = "🥈 #2 Recommendation"
-        badge_class = "rank-badge"
-
-    else:
-
-        badge = "🥉 #3 Recommendation"
-        badge_class = "rank-badge"
-
-    listing_name = listing.get(
-        "name"
-    )
-
-    if (
-        listing_name is None
-        or pd.isna(listing_name)
-    ):
-
-        listing_name = "Unnamed Listing"
-
-    listing_name = html.escape(
-        str(listing_name)
-    )
-
-    city = listing.get("city")
-    region = listing.get("region")
-    country = listing.get("country")
-
-    location_parts = [
-        str(value)
-        for value in [
-            city,
-            region,
-            country
-        ]
-        if pd.notna(value) and value
-    ]
-
-    location = ", ".join(
-        location_parts
-    )
-
-    if not location:
-
-        location = "Location unavailable"
-
-    location = html.escape(
-        location
-    )
-
-    property_type = listing.get(
-        "property_type",
-        "Property"
-    )
-
-    if (
-        property_type is None
-        or pd.isna(property_type)
-    ):
-
-        property_type = "Property"
-
-    property_type = str(
-        property_type
-    ).title()
-
-    platform = platform_name(
-        listing.get(
-            "platform",
-            ""
-        )
-    )
-
-    rating = listing.get(
-        "rating"
-    )
-
-    if (
-        rating is None
-        or pd.isna(rating)
-    ):
-
-        rating_text = "No rating"
-
-    else:
-
-        rating_text = (
-            f"{float(rating):.2f} / 5"
-        )
-
-    reviews = listing.get(
-        "review_count",
-        0
-    )
-
-    if (
-        reviews is None
-        or pd.isna(reviews)
-    ):
-
-        reviews = 0
-
-    bedrooms = listing.get(
-        "bedrooms"
-    )
-
-    if (
-        bedrooms is None
-        or pd.isna(bedrooms)
-    ):
-
-        bedrooms_text = (
-            "Not specified"
-        )
-
-    else:
-
-        bedrooms_text = str(
-            int(bedrooms)
-        )
-
-    bathrooms = listing.get(
-        "bathrooms"
-    )
-
-    if (
-        bathrooms is None
-        or pd.isna(bathrooms)
-    ):
-
-        bathrooms_text = (
-            "Not specified"
-        )
-
-    else:
-
-        bathrooms_text = (
-            f"{float(bathrooms):g}"
-        )
-
-    currency = listing.get(
-        "currency",
-        ""
-    )
-
-    nightly_price = format_price(
-        listing.get(
-            "nightly_price"
-        ),
-        currency
-    )
-
-    total_price = format_price(
-        listing.get(
-            "total_price"
-        ),
-        currency
-    )
-
-    match_score = listing.get(
-        "match_score",
-        0
-    )
-
-    if (
-        match_score is None
-        or pd.isna(match_score)
-    ):
-
-        match_score = 0
-
-    return (
-        f'<div class="recommendation-card">'
-
-        f'<div class="{badge_class}">'
-        f'{badge}'
-        f'</div>'
-
-        f'<div class="listing-title">'
-        f'{listing_name}'
-        f'</div>'
-
-        f'<div class="listing-location">'
-        f'📍 {location}'
-        f'</div>'
-
-        f'<div class="listing-price">'
-        f'{nightly_price}'
-        f'<span> / night</span>'
-        f'</div>'
-
-        f'<div class="listing-detail">'
-        f'🌐 <b>{platform}</b><br>'
-        f'🏠 {property_type}<br>'
-        f'⭐ {rating_text} '
-        f'({int(reviews):,} reviews)<br>'
-        f'🛏️ {bedrooms_text} bedroom(s)<br>'
-        f'🚿 {bathrooms_text} bathroom(s)<br>'
-        f'💳 Total stay: {total_price}'
-        f'</div>'
-
-        f'</div>'
-    )
-
-
-# ============================================================
-# TOP RECOMMENDATIONS
-# ============================================================
-
-def render_top_recommendations(
-    top_3,
-    search_filters
-):
-
-    if top_3.empty:
-        return
-
-    st.header(
-        "⭐ Top picks for you"
-    )
-
-    st.caption(
-        "These stays satisfy your selected "
-        "requirements and ranked highest "
-        "among the available options."
-    )
-
-    columns = st.columns(
-        len(top_3),
-        gap="large"
-    )
-
-    for index, (_, listing) in enumerate(
-        top_3.iterrows()
-    ):
-
-        with columns[index]:
-
-            st.markdown(
-                recommendation_card_html(
-                    listing,
-                    index + 1
-                ),
-                unsafe_allow_html=True
-            )
-
-            booking_url = listing.get(
-                "booking_url"
-            )
-
-            platform = platform_name(
-                listing.get(
-                    "platform",
-                    ""
-                )
-            )
-
-            if (
-                booking_url
-                and pd.notna(booking_url)
-            ):
-
-                st.link_button(
-                    f"View on {platform} ↗",
-                    booking_url,
-                    use_container_width=True
-                )
-
-            compare_clicked = st.button(
-                "💰 Compare Prices",
-                key=(
-                    f"compare_"
-                    f"{listing.get('id', index)}"
-                ),
-                use_container_width=True
-            )
-
-            if compare_clicked:
-
-                st.session_state[
-                    "comparison_listing"
-                ] = listing.to_dict()
-
-    comparison_listing = (
-        st.session_state.get(
-            "comparison_listing"
-        )
-    )
-
-    if comparison_listing:
-
-        st.divider()
-
-        st.subheader(
-            f"💰 Compare prices — "
-            f"{comparison_listing.get('name', 'Property')}"
-        )
-
-        render_price_comparison(
-            comparison_listing,
-            search_filters
-        )
 
 
 # ============================================================
@@ -600,16 +721,28 @@ def render_results_table(
     all_results
 ):
 
-    st.write("")
-    st.write("")
+    if all_results.empty:
+        return
 
-    st.header(
-        "🏘️ All matching properties"
-    )
+    render_html(
+        f"""
+        <section class="all-results-section">
 
-    st.caption(
-        f"Browse all {len(all_results):,} stays "
-        "that satisfy your requirements."
+            <div class="section-kicker">
+                ALL MATCHES
+            </div>
+
+            <h2>
+                More stays to explore
+            </h2>
+
+            <p>
+                {len(all_results):,} properties
+                matched your selected requirements.
+            </p>
+
+        </section>
+        """
     )
 
     columns_to_show = [
@@ -623,7 +756,6 @@ def render_results_table(
         "rating",
         "review_count",
         "bedrooms",
-        "match_score",
         "booking_url"
     ]
 
@@ -640,9 +772,7 @@ def render_results_table(
     if "platform" in display_df.columns:
 
         display_df["platform"] = (
-            display_df[
-                "platform"
-            ].apply(
+            display_df["platform"].apply(
                 platform_name
             )
         )
@@ -651,83 +781,49 @@ def render_results_table(
         "name": "Property",
         "platform": "Platform",
         "city": "City",
-        "property_type": (
-            "Property Type"
-        ),
-        "nightly_price": (
-            "Nightly Price"
-        ),
-        "total_price": (
-            "Total Price"
-        ),
+        "property_type": "Type",
+        "nightly_price": "Night",
+        "total_price": "Total",
         "currency": "Currency",
-        "rating": "Rating / 5",
+        "rating": "Rating",
         "review_count": "Reviews",
         "bedrooms": "Bedrooms",
-        "match_score": (
-            "Match Score"
-        ),
-        "booking_url": (
-            "Booking Link"
-        )
+        "booking_url": "Booking"
     }
 
     display_df = display_df.rename(
         columns=rename_map
     )
 
-    if "Rating / 5" in display_df.columns:
+    if "Rating" in display_df.columns:
 
-        display_df[
-            "Rating / 5"
-        ] = display_df[
-            "Rating / 5"
-        ].round(2)
-
-    if "Match Score" in display_df.columns:
-
-        display_df[
-            "Match Score"
-        ] = display_df[
-            "Match Score"
-        ].round(1)
+        display_df["Rating"] = (
+            display_df["Rating"].round(1)
+        )
 
     column_config = {}
 
-    if (
-        "Booking Link"
-        in display_df.columns
-    ):
+    if "Booking" in display_df.columns:
 
-        column_config[
-            "Booking Link"
-        ] = (
+        column_config["Booking"] = (
             st.column_config.LinkColumn(
-                "View Stay",
+                "View",
                 display_text="Open ↗"
             )
         )
 
-        row_height = 35
-        header_height = 38
+    table_height = min(
+        520,
+        70 + len(display_df) * 38
+    )
 
-        table_height = (
-            header_height
-            + len(display_df) * row_height
-        )
-
-        table_height = min(
-            table_height,
-            520
-        )
-
-        st.dataframe(
-            display_df,
-            use_container_width=True,
-            hide_index=True,
-            height=table_height,
-            column_config=column_config
-        )
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+        height=table_height,
+        column_config=column_config
+    )
 
 
 # ============================================================
@@ -746,7 +842,6 @@ def render_map(
     if not required_columns.issubset(
         all_results.columns
     ):
-
         return
 
     map_df = all_results[
@@ -759,11 +854,24 @@ def render_map(
     if map_df.empty:
         return
 
-    st.write("")
-    st.write("")
+    render_html(
+        """
+        <section class="map-section">
 
-    st.header(
-        "🗺️ Explore the area"
+            <div class="section-kicker">
+                LOCATION
+            </div>
+
+            <h2>
+                Explore the area
+            </h2>
+
+            <p>
+                See where the matching stays are located.
+            </p>
+
+        </section>
+        """
     )
 
     map_df.columns = [
@@ -791,27 +899,130 @@ def render_results(
 
         st.warning(
             """
-            😕 No properties matched your requirements.
+            No properties matched your requirements.
 
-            Try:
-            - Increasing your maximum budget
-            - Lowering the minimum guest rating
-            - Reducing minimum bedrooms
-            - Choosing "Any" property type
+            Try increasing your maximum budget,
+            lowering the minimum rating,
+            reducing minimum bedrooms,
+            or choosing any property type.
             """
         )
 
         return
 
-    st.success(
-    f"✅ {len(all_results):,} properties match your requirements. "
-    f"Showing the top {min(3, len(top_3))} recommendations below."
-)
+    # Result summary
+    location = safe_text(
+        search_filters.get("location"),
+        "your destination"
+    )
+
+    check_in = safe_text(
+        search_filters.get("check_in"),
+        ""
+    )
+
+    check_out = safe_text(
+        search_filters.get("check_out"),
+        ""
+    )
+
+    adults = search_filters.get(
+        "adults",
+        2
+    )
+
+    children = search_filters.get(
+        "children",
+        0
+    )
+
+    guests = adults + children
+
+    render_html(
+        f"""
+        <div class="search-summary">
+
+            <div>
+
+                <div class="search-summary-kicker">
+                    SEARCH RESULTS
+                </div>
+
+                <h1>
+                    Stays in
+                    {html.escape(location)}
+                </h1>
+
+                <p>
+                    {html.escape(check_in)}
+                    →
+                    {html.escape(check_out)}
+                    &nbsp; · &nbsp;
+                    {guests} guest
+                    {"s" if guests != 1 else ""}
+                </p>
+
+            </div>
+
+            <div class="search-summary-count">
+                <strong>
+                    {len(all_results):,}
+                </strong>
+                <span>
+                    matches
+                </span>
+            </div>
+
+        </div>
+        """
+    )
 
     render_top_recommendations(
         top_3,
         search_filters
     )
+
+    comparison_listing = (
+        st.session_state.get(
+            "comparison_listing"
+        )
+    )
+
+    if comparison_listing:
+
+        render_html(
+            """
+            <div class="comparison-divider"></div>
+            """
+        )
+
+        render_html(
+            f"""
+            <section class="comparison-heading">
+
+                <div class="section-kicker">
+                    COMPARE THIS PROPERTY
+                </div>
+
+                <h2>
+                    {html.escape(
+                        safe_text(
+                            comparison_listing.get(
+                                "name"
+                            ),
+                            "Selected property"
+                        )
+                    )}
+                </h2>
+
+            </section>
+            """
+        )
+
+        render_price_comparison(
+            comparison_listing,
+            search_filters
+        )
 
     render_results_table(
         all_results
@@ -819,4 +1030,21 @@ def render_results(
 
     render_map(
         all_results
+    )
+
+    render_html(
+        """
+        <footer class="fmf-footer">
+
+            <div class="fmf-footer-brand">
+                FindMyFlat
+            </div>
+
+            <p>
+                Search smarter. Compare better.
+                Book where you prefer.
+            </p>
+
+        </footer>
+        """
     )

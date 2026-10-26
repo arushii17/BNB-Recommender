@@ -1,219 +1,273 @@
-import streamlit as st
 from datetime import date, timedelta
+
+import streamlit as st
 
 
 def render_search_form():
 
-    st.subheader("🔍 Find your stay")
+    render_search_intro()
 
-    st.caption(
-        "Search live accommodation options across multiple platforms."
+    st.markdown(
+        '<div class="search-card">',
+        unsafe_allow_html=True
     )
 
-    # ---------------------------
-    # Destination
-    # ---------------------------
+    # ========================================================
+    # MAIN SEARCH
+    # ========================================================
+
+    st.markdown(
+        """
+        <div class="search-card-heading">
+            <div class="search-card-kicker">
+                PLAN YOUR STAY
+            </div>
+
+            <h2>
+                Where are you going?
+            </h2>
+
+            <p>
+                Tell us what you're looking for and we'll
+                find the strongest options available.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     destination = st.text_input(
-        "📍 Destination",
-        placeholder="e.g. New York, Paris, Tokyo"
+        "Destination",
+        placeholder="e.g. New Delhi, Paris, Tokyo",
+        label_visibility="visible"
     )
 
-    # ---------------------------
-    # Dates
-    # ---------------------------
-
-    col1, col2 = st.columns(2)
-
-    today = date.today()
+    col1, col2 = st.columns(
+        2,
+        gap="medium"
+    )
 
     with col1:
+
         check_in = st.date_input(
-            "📅 Check-in",
-            value=today + timedelta(days=7),
-            min_value=today
+            "Check-in",
+            value=date.today() + timedelta(days=7),
+            min_value=date.today()
         )
 
     with col2:
+
         check_out = st.date_input(
-            "📅 Check-out",
-            value=today + timedelta(days=10),
-            min_value=today + timedelta(days=1)
+            "Check-out",
+            value=date.today() + timedelta(days=10),
+            min_value=date.today() + timedelta(days=1)
         )
 
-    # ---------------------------
-    # Guests
-    # ---------------------------
-
-    st.markdown("#### 👥 Guests")
-
-    col3, col4 = st.columns(2)
+    col3, col4, col5 = st.columns(
+        3,
+        gap="medium"
+    )
 
     with col3:
+
         adults = st.number_input(
             "Adults",
             min_value=1,
-            max_value=16,
-            value=2
+            max_value=20,
+            value=2,
+            step=1
         )
 
     with col4:
+
         children = st.number_input(
             "Children",
             min_value=0,
             max_value=10,
-            value=0
+            value=0,
+            step=1
         )
-
-    # ---------------------------
-    # Currency
-    # ---------------------------
-
-    st.markdown("#### 💱 Currency")
-
-    currency_options = {
-        "USD ($)": "USD",
-        "EUR (€)": "EUR",
-        "GBP (£)": "GBP",
-        "INR (₹)": "INR"
-    }
-
-    selected_currency = st.selectbox(
-        "Choose currency",
-        list(currency_options.keys()),
-        label_visibility="collapsed"
-    )
-
-    currency = currency_options[selected_currency]
-
-    currency_symbols = {
-        "USD": "$",
-        "EUR": "€",
-        "GBP": "£",
-        "INR": "₹"
-    }
-
-    symbol = currency_symbols[currency]
-
-    # ---------------------------
-    # Budget
-    # ---------------------------
-
-    st.markdown("#### 💰 Budget per night")
-
-    col5, col6 = st.columns(2)
 
     with col5:
+
+        currency_options = {
+            "INR (₹)": "INR",
+            "USD ($)": "USD",
+            "EUR (€)": "EUR",
+            "GBP (£)": "GBP"
+        }
+
+        selected_currency = st.selectbox(
+            "Currency",
+            list(currency_options.keys())
+        )
+
+        currency = currency_options[
+            selected_currency
+        ]
+
+    # ========================================================
+    # FILTERS
+    # ========================================================
+
+    st.markdown(
+        """
+        <div class="filter-heading">
+            Refine your search
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col1, col2, col3, col4 = st.columns(
+        4,
+        gap="medium"
+    )
+
+    with col1:
+
         min_price = st.number_input(
-            f"Minimum price ({symbol})",
+            "Minimum / night",
             min_value=0,
-            max_value=50000,
-            value=50,
-            step=10
+            value=0,
+            step=500
         )
 
-    with col6:
+    with col2:
+
         max_price = st.number_input(
-            f"Maximum price ({symbol})",
-            min_value=1,
-            max_value=50000,
-            value=350,
-            step=10
+            "Maximum / night",
+            min_value=0,
+            value=10000,
+            step=500
         )
 
-    # ---------------------------
-    # Property preferences
-    # ---------------------------
+    with col3:
 
-    col7, col8 = st.columns(2)
-
-    with col7:
         property_type = st.selectbox(
-            "🏠 Property Type",
+            "Property type",
             [
                 "Any",
                 "Apartment",
                 "House",
                 "Villa",
                 "Hotel",
-                "Condo",
-                "Cabin"
+                "Private room"
             ]
         )
 
-    with col8:
+    with col4:
+
         bedrooms = st.number_input(
-            "🛏️ Minimum Bedrooms",
+            "Minimum bedrooms",
             min_value=0,
-            max_value=20,
-            value=1
+            max_value=10,
+            value=0,
+            step=1
         )
 
-    # ---------------------------
-    # Rating
-    # ---------------------------
-
     min_rating = st.slider(
-        "⭐ Minimum Guest Rating",
+        "Minimum guest rating",
         min_value=0.0,
         max_value=5.0,
-        value=4.0,
+        value=0.0,
         step=0.1
     )
 
-    # ---------------------------
-    # Search button
-    # ---------------------------
+    st.markdown(
+        '<div class="search-action">',
+        unsafe_allow_html=True
+    )
 
-    st.write("")
-
-    search = st.button(
-        "🔎 Search Stays",
-        type="primary",
+    search_clicked = st.button(
+        "Search stays  →",
         use_container_width=True
     )
 
-    if not search:
+    st.markdown(
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    if not search_clicked:
         return None
 
-    # ---------------------------
-    # Validation
-    # ---------------------------
-
     if not destination.strip():
-        st.error("Please enter a destination.")
+
+        st.error(
+            "Please enter a destination."
+        )
+
         return None
 
     if check_out <= check_in:
-        st.error("Check-out must be after check-in.")
-        return None
 
-    if min_price > max_price:
         st.error(
-            "Minimum price cannot be greater than maximum price."
+            "Check-out must be after check-in."
         )
+
         return None
 
-    # ---------------------------
-    # Return filters
-    # ---------------------------
+    if (
+        max_price > 0
+        and min_price > max_price
+    ):
+
+        st.error(
+            "Maximum price must be greater than minimum price."
+        )
+
+        return None
 
     return {
         "location": destination.strip(),
-
         "check_in": check_in.isoformat(),
         "check_out": check_out.isoformat(),
-
         "adults": int(adults),
         "children": int(children),
-
         "currency": currency,
-
-        "min_price": min_price,
-        "max_price": max_price,
-
+        "min_price": (
+            int(min_price)
+            if min_price > 0
+            else None
+        ),
+        "max_price": (
+            int(max_price)
+            if max_price > 0
+            else None
+        ),
         "property_type": property_type.lower(),
         "bedrooms": int(bedrooms),
-
-        "min_rating": min_rating
+        "min_rating": float(min_rating)
     }
+
+
+def render_search_intro():
+
+    st.markdown(
+        """
+        <section class="search-intro">
+
+            <div class="search-intro-kicker">
+                SEARCH · COMPARE · CHOOSE
+            </div>
+
+            <h2>
+                Find a stay that actually fits.
+            </h2>
+
+            <p>
+                Search live accommodation options,
+                compare providers, and decide where
+                you want to book.
+            </p>
+
+        </section>
+        """,
+        unsafe_allow_html=True
+    )
