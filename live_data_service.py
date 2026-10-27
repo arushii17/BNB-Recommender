@@ -31,6 +31,7 @@ def search_stays(
     children=0,
     currency="USD"
 ):
+    print("API KEY LOADED:", bool(API_KEY))
     response = requests.get(
         f"{BASE_URL}/search",
         headers=_headers(),

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import date
 from pathlib import Path
@@ -18,6 +19,9 @@ from live_data_service import (
     search_stays,
 )
 from recommendation_engine import get_live_recommendations
+
+
+logger = logging.getLogger(__name__)
 
 
 class SearchRequest(BaseModel):
@@ -157,6 +161,16 @@ def search(request: SearchRequest):
             currency=request.currency,
         )
     except requests.RequestException as error:
+        upstream_status = (
+            error.response.status_code
+            if error.response is not None
+            else None
+        )
+        logger.warning(
+            "Live stay search failed: %s (upstream status: %s)",
+            type(error).__name__,
+            upstream_status,
+        )
         raise HTTPException(
             status_code=502,
             detail="The live stay provider could not be reached.",
