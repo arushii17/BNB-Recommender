@@ -1,418 +1,213 @@
-<<<<<<< HEAD
-# BNB-Recommender
+# FindMyFlat — AI-Powered Stay Search & Price Comparison
 
-## Run the React app
+FindMyFlat is a full-stack accommodation search and recommendation platform that combines **real-time stay data, multi-criteria ranking, and cross-platform price comparison** into one interface.
 
-The React app is the primary UI. It uses the existing Python search and
-recommendation code through the local API.
+Instead of searching individual booking platforms separately, users can enter their destination, dates, guests, budget and preferences and receive ranked accommodation recommendations.
 
-1. Create and activate a Python environment:
-   `python -m venv .venv`, then `.\.venv\Scripts\Activate.ps1`
-2. Install the Python dependencies: `python -m pip install -r requirements.txt`
-3. Install the frontend dependencies: `npm install`
-4. Start the Python API in one terminal: `npm run api`
-5. Start the React UI in another terminal: `npm run dev`
-6. Open the Vite URL printed in the terminal (usually <http://localhost:5173>).
+## ✨ Key Features
 
-Set `STAYING_API_KEY` in `.env` for live searches and rate comparisons. For
-production, run `npm run build`, then, with the Python environment activated,
-start the API with `python -m uvicorn api:app --host 0.0.0.0 --port 8000`; the
-API serves the compiled React app from `dist/`.
+- 🔎 **Real-time stay search** across multiple accommodation platforms
+- 🏠 Aggregates listings from **Airbnb, Booking.com, Vrbo and Google Hotels**
+- 🎯 **Multi-criteria recommendation engine** based on price, guest rating and review volume
+- 💰 **Cross-platform price comparison** to identify the lowest available offer
+- 🎛️ Advanced filtering by:
+  - Budget
+  - Property type
+  - Bedrooms
+  - Minimum rating
+  - Dates
+  - Adults and children
+  - Currency
+- 📊 Converts heterogeneous listing data into a unified structure for comparison
+- ⚡ Handles live API responses and asynchronous job-based requests
+- 🌐 React-based interactive frontend with a Python backend
 
-The previous Streamlit UI is still available separately with
-`streamlit run app.py`.
-=======
-# 🏠 FindMyFlat
+## 🧠 Recommendation Algorithm
 
-**Find the right stay. Compare where it's cheapest. Book wherever you prefer.**
+FindMyFlat does not simply sort properties by rating or price.
 
-FindMyFlat is a multi-platform accommodation search and recommendation application that helps users discover stays based on their travel preferences, rank suitable properties, compare prices across accommodation providers, and redirect to the selected platform for booking.
+Each listing is evaluated using three core features:
 
-The project is currently under active development. The core search, filtering, recommendation, and price-comparison pipeline has been implemented, while the final UI and AI-agent layer are still in progress.
+- Nightly price
+- Guest rating
+- Review count
 
----
+The features are normalized using **Min-Max scaling**.
 
-## 🎯 Problem
+The system then constructs an ideal profile:
 
-Finding accommodation often requires searching across multiple platforms separately and comparing properties based on price, ratings, reviews, and other requirements.
+```text
+[low price, high rating, high review count]
+```
 
-FindMyFlat aims to simplify this process by creating a single search and recommendation layer across accommodation providers.
+and calculates the **Euclidean distance** between each listing and this ideal profile.
 
-Instead of acting as a booking engine, the application:
+Listings closer to the ideal profile receive higher match scores.
 
-1. Searches accommodation data across supported platforms.
-2. Normalizes results into a common format.
-3. Applies the user's hard requirements.
-4. Ranks eligible properties.
-5. Highlights the top recommendations.
-6. Allows price comparison across providers.
-7. Redirects the user to an external provider to continue booking.
+The system then ranks the listings and surfaces the **Top 3 recommendations**.
 
----
+### Ranking Pipeline
 
-## ✨ Current Features
+```text
+Live Listings
+      ↓
+Data Normalization
+      ↓
+User Preference Filtering
+      ↓
+Feature Scaling
+      ↓
+Ideal-Profile Distance
+      ↓
+Match Score
+      ↓
+Top Recommendations
+```
 
-### 🔍 Live Stay Search
-Users can search using:
+## 💰 Price Comparison
 
-- Destination
-- Check-in and check-out dates
-- Number of adults and children
-- Preferred currency
-- Minimum and maximum nightly budget
-- Property type
-- Minimum bedrooms
-- Minimum guest rating
+For a selected property, FindMyFlat can compare offers across booking platforms and identify the lowest total price.
 
-### 🌐 Multi-Platform Data
+The comparison considers the **total booking price**, rather than relying only on nightly rates, helping users account for differences in fees and other pricing components.
 
-The application integrates with **StayingAPI** to retrieve normalized accommodation data from supported travel platforms such as:
+## 🏗️ Architecture
 
+```text
+React Frontend
+      │
+      │ POST /api/search
+      ▼
+Python Backend
+      │
+      ├── Search & Validation
+      │
+      ├── StayingAPI
+      │
+      ├── Data Normalization
+      │
+      └── Recommendation Engine
+              │
+              ├── Filtering
+              ├── Feature Scaling
+              └── Ranking
+```
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React
+- Vite
+- JavaScript
+- CSS
+
+### Backend & Data
+- Python
+- REST APIs
+- Pandas
+- NumPy
+- Scikit-learn
+
+### External Data
+- StayingAPI
 - Airbnb
 - Booking.com
 - Vrbo
 - Google Hotels
 
-### 🧹 Data Normalization
-
-Provider responses are converted into a common internal structure containing fields such as:
-
-- Property name
-- Platform
-- Location
-- Property type
-- Nightly price
-- Total stay price
-- Currency
-- Guest rating
-- Review count
-- Bedrooms and bathrooms
-- Coordinates
-- Provider URL
-
-This allows properties originating from different platforms to be processed through the same recommendation pipeline.
-
-### 🎯 Hard Filtering
-
-Properties are first filtered according to user requirements.
-
-A property must satisfy the selected constraints before it can be considered for recommendation.
-
-Current filters include:
-
-- Budget range
-- Property type
-- Minimum bedrooms
-- Minimum rating
-
-This prevents a highly rated but unsuitable or over-budget property from being recommended.
-
-### 🧠 Recommendation Engine
-
-After filtering, eligible properties are ranked using:
-
-- Nightly price
-- Guest rating
-- Review count
-
-The features are normalized using `MinMaxScaler`.
-
-Each property is compared with an ideal profile:
-
-```text
-Lower Price
-Higher Rating
-Higher Review Count
-```
-
-Euclidean distance is used to determine which properties are closest to this ideal profile.
-
-The three highest-ranked properties are presented as the user's **Top 3 Recommendations**.
-
-> The ranking score is relative to the properties available for the current search and should not be interpreted as a probability or model confidence score.
-
-### 💰 Cross-Platform Price Comparison
-
-Users can request a price comparison for a selected property.
-
-The application uses the price-comparison endpoint to retrieve available offers from multiple providers and compares them using the **total stay price**.
-
-Where available, users can then follow the provider link to continue their booking externally.
-
-### 🗺️ Property Map
-
-Listings containing valid latitude and longitude information can also be displayed geographically using Streamlit's map component.
-
----
-
-## 🏗️ Current Architecture
-
-```text
-User Search
-    │
-    ▼
-StayingAPI
-    │
-    ▼
-Live Data Service
-    │
-    ▼
-Normalized Listings
-    │
-    ▼
-Hard Filters
-    │
-    ▼
-Recommendation Engine
-    │
-    ▼
-Top 3 Recommendations
-    │
-    ├──────────────► All Matching Properties
-    │
-    └──────────────► Price Comparison
-                           │
-                           ▼
-                    External Provider
-```
-
----
-
 ## 📁 Project Structure
 
 ```text
 FindMyFlat/
-│
-├── app.py
-├── search_form.py
+├── api.py
 ├── live_data_service.py
 ├── recommendation_engine.py
-├── ui_components.py
 ├── agent.py
 ├── requirements.txt
 ├── .env
+├── .gitignore
 │
-├── assets/
-│   ├── style.css
-│   └── background-image.jpg
+├── src/
+│   ├── components/
+│   └── ...
 │
-└── data/
-    └── AB_NYC_2019.csv
+├── package.json
+├── vite.config.*
+└── index.html
 ```
 
-### Main Components
+## 🚀 Running Locally
 
-**`app.py`**  
-Main Streamlit application and application-state management.
+### Backend
 
-**`search_form.py`**  
-Handles destination, dates, guests, currency, budget, property type, bedroom, and rating inputs.
-
-**`live_data_service.py`**  
-Handles communication with StayingAPI, response normalization, asynchronous jobs, and price-comparison requests.
-
-**`recommendation_engine.py`**  
-Applies hard filters and ranks eligible properties.
-
-**`ui_components.py`**  
-Contains reusable Streamlit components for displaying recommendations, comparison results, tables, maps, and other interface elements.
-
-**`agent.py`**  
-Reserved for the upcoming AI-agent layer.
-
----
-
-## 🛠️ Tech Stack
-
-| Area | Technology |
-|---|---|
-| Language | Python |
-| Frontend | Streamlit |
-| Data Processing | Pandas, NumPy |
-| Recommendation | Scikit-learn |
-| API Integration | Requests |
-| Environment Variables | python-dotenv |
-| Accommodation Data | StayingAPI |
-
----
-
-## ⚙️ Installation
-
-### 1. Clone the repository
-
-```bash
-git clone <YOUR_REPOSITORY_URL>
-cd FindMyFlat
-```
-
-### 2. Create a virtual environment
+Create and activate a Python virtual environment:
 
 ```bash
 python -m venv env
 ```
 
-### 3. Activate the environment
+Windows:
 
-#### Windows PowerShell
-
-```powershell
+```bash
 .\env\Scripts\Activate.ps1
 ```
 
-#### macOS / Linux
+Install dependencies:
 
 ```bash
-source env/bin/activate
+pip install -r requirements.txt
 ```
 
-### 4. Install dependencies
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-### 5. Configure the API key
-
-Create a `.env` file in the project root:
+Add your StayingAPI key to `.env`:
 
 ```env
-STAYING_API_KEY=your_staying_api_key
+STAYING_API_KEY=your_key_here
 ```
 
-> Never commit your `.env` file or API keys to GitHub.
+Start the Python backend using the project's configured API server command.
 
-Make sure `.gitignore` contains:
+### Frontend
 
-```gitignore
-.env
-env/
-__pycache__/
-```
-
-### 6. Run the application
+Install dependencies:
 
 ```bash
-python -m streamlit run app.py
+npm install
 ```
 
----
+Start the development server:
 
-## 🧪 Development & Testing
-
-The project currently uses StayingAPI's sandbox environment during development.
-
-Sandbox responses use deterministic test fixtures. Therefore, sandbox results may **not correspond to the destination, currency, properties, or provider links entered during a search**.
-
-For example, searching for Delhi while using a sandbox key may still return predefined test properties from another location.
-
-These responses are useful for testing:
-
-- API integration
-- Response normalization
-- Filtering
-- Recommendation logic
-- Application state
-- Error handling
-- Price-comparison flow
-- UI components
-
-Real destination coverage, currencies, property matching, pricing, and redirects must be validated separately using live API requests.
-
----
-
-## 🚧 Development Status
-
-### Implemented
-
-- [x] Multi-platform accommodation API integration
-- [x] Dynamic destination search
-- [x] Dynamic check-in/check-out dates
-- [x] Guest selection
-- [x] Currency selection
-- [x] Budget filtering
-- [x] Property-type filtering
-- [x] Bedroom filtering
-- [x] Minimum-rating filtering
-- [x] Provider response normalization
-- [x] Recommendation engine
-- [x] Top 3 property ranking
-- [x] All-results view
-- [x] Map visualization
-- [x] Provider redirects
-- [x] Price-comparison integration
-- [x] Streamlit session-state handling
-
-### In Progress
-
-- [ ] Final UI/UX redesign
-- [ ] Live API validation
-- [ ] Real-world provider-link validation
-- [ ] Recommendation testing on live inventory
-- [ ] Additional edge-case handling
-
-### Planned
-
-- [ ] AI travel/stay assistant
-- [ ] Conversational search refinement
-- [ ] Agent-based recommendation workflow
-- [ ] Saved searches and personalized recommendations
-- [ ] Price monitoring / alerts
-
----
-
-## 🔄 Project Evolution
-
-FindMyFlat originally began as a recommendation system using the **AB_NYC_2019 Airbnb dataset**.
-
-The initial version explored accommodation recommendation using historical listing attributes such as price, reviews, availability, and location.
-
-The project has since evolved into a **live multi-platform accommodation discovery and price-comparison system**.
-
-The historical dataset is therefore no longer used as the primary inventory source for live searches. The current architecture retrieves accommodation data through APIs and processes it through a provider-independent recommendation pipeline.
-
----
-
-## ⚠️ Important Notes
-
-FindMyFlat is currently a development/portfolio project.
-
-- It does not process bookings or payments.
-- Booking is completed on external provider websites.
-- Accommodation availability and pricing depend on upstream data providers.
-- Sandbox API responses should not be interpreted as real travel inventory.
-- Provider coverage and price-comparison availability may vary by property and location.
-
----
-
-## 🔐 Security
-
-API credentials are stored using environment variables and are excluded from version control.
-
-Never commit:
-
-```text
-.env
-API keys
-Access tokens
-Secrets
+```bash
+npm run dev
 ```
 
----
+## 🔐 Environment Variables
+
+Never commit API keys or other credentials.
+
+Example:
+
+```env
+STAYING_API_KEY=your_key_here
+```
+
+The `.env` file should remain in `.gitignore`.
+
+## 📌 What Makes FindMyFlat Different?
+
+Traditional accommodation search requires users to manually compare listings across multiple platforms.
+
+FindMyFlat combines:
+
+**Real-time data aggregation + preference filtering + algorithmic recommendation + cross-platform price comparison**
+
+into a single workflow.
+
+The recommendation system is also designed around an explicit **ideal-profile distance metric**, allowing recommendations to balance affordability, quality and social proof rather than optimizing for only one factor.
 
 ## 👩‍💻 Author
 
 **Arushi Bhat**
 
-B.Tech Computer Science & Engineering — Data Science  
-Interested in Data Science, AI/ML, Software Engineering, and intelligent application development.
+B.Tech CSE (Data Science)  
+The NorthCap University
 
----
-
-## 📌 Current Status
-
-**Work in Progress 🚧**
-
-The core accommodation search and recommendation pipeline is functional.
-
-The next development phase focuses on completing the UI/UX, validating the application against live accommodation data, and subsequently extending FindMyFlat with an AI-agent layer.
->>>>>>> 8fe79a99d9bca71f634d44cc0958c596f460a771
+GitHub: [arushii17](https://github.com/arushii17)
